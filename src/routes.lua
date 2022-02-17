@@ -11,8 +11,10 @@ local function game(_, res)
 	print("ROUTE--game")
 	-- Set options
 	res.headers["Content-Type"] = "text/html"
+	res.code = 200
 	-- Read file and send to response
-	local file = fs.readFileSync(index_file)
+	local file = utils.get_raded_index()
+	print(file)
 	res.body = file
 end
 
@@ -21,6 +23,7 @@ local function start(_, res)
 	print("ROUTE--start")
 	-- Set options
 	res.headers["Content-Type"] = "text/json"
+	res.code = 200
 	-- Read file and send to response
 	local id = utils.uuid()
 	-- Create unique uuid
@@ -38,6 +41,7 @@ end
 local function pick(req,res)
 	print("ROUTE--pick")
 	res.headers["Content-Type"] = "text/json"
+	res.code = 200
 	local body_table = utils.parse_url_body(req.body)
 	local state = connection[body_table["id"]]
 
