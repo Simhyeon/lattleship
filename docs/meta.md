@@ -13,3 +13,5 @@
 * [ ] Make Stateful connection map ( at least global )
 	* [ ] UserState object
 	* [ ] GameState object
+
+* [ ] Automation script
