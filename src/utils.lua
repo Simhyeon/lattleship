@@ -34,9 +34,17 @@ local function uuid()
     end)
 end
 
+local function get_raded_index()
+	local file = io.popen("./rad index.html -a fin", "r")
+	local data = file:read("*all")
+	file:close()
+	return data
+end
+
 local utils = {
 	split_string = split_string,
 	parse_url_body = parse_url_body,
+	get_raded_index = get_raded_index,
 	uuid = uuid,
 }
 
