@@ -1,10 +1,34 @@
+-- Shuffle
+local function shuffle(tbl)
+	for i = #tbl, 2, -1 do
+		local j = math.random(i)
+		tbl[i], tbl[j] = tbl[j], tbl[i]
+	end
+	return tbl
+end
+
+-- Shallow copy table
+-- doesn't copy nested tables properly
+local function shallow_copy(original)
+	local copy = {}
+	for key, value in pairs(original) do
+		copy[key] = value
+	end
+	return copy
+end
+
 -- Two dimensional array
 local function empty_2d_array(row,col,value)
 	local grid = {}
 	for i = 1,col do
 		grid[i] = {}
 		for j = 1,row do
-			grid[i][j] = value
+			-- Copy a given value if the value is a table
+			if type(value) == "table" then
+				grid[i][j] = shallow_copy(value)
+			else
+				grid[i][j] = value
+			end
 		end
 	end
 	return grid
@@ -54,6 +78,8 @@ local function get_raded_index()
 end
 
 local utils = {
+	shuffle = shuffle,
+	shallow_copy = shallow_copy,
 	empty_2d_array = empty_2d_array,
 	split_string = split_string,
 	parse_url_body = parse_url_body,
