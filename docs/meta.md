@@ -11,7 +11,12 @@
 * [ ] Make index.html
 
 * [ ] Make Stateful connection map ( at least global )
-	* [ ] UserState object
+	* [ ] FieldState object
 	* [ ] GameState object
 
 * [ ] Automation script
+
+* [x] Understand the concept of oop mimicking
+	* [x] self.__index = self
+
+* [ ] 
