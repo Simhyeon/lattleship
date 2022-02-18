@@ -1,3 +1,15 @@
+-- Two dimensional array
+local function empty_2d_array(row,col,value)
+	local grid = {}
+	for i = 1,col do
+		grid[i] = {}
+		for j = 1,row do
+			grid[i][j] = value
+		end
+	end
+	return grid
+end
+
 -- Split command with given separator
 local function split_string(inputstr, sep)
 	if sep == nil or sep == "" then
@@ -42,6 +54,7 @@ local function get_raded_index()
 end
 
 local utils = {
+	empty_2d_array = empty_2d_array,
 	split_string = split_string,
 	parse_url_body = parse_url_body,
 	get_raded_index = get_raded_index,
