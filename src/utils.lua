@@ -1,3 +1,11 @@
+local function log_err(text)
+	io.stderr:write(string.format("ERR : %s\n",text))
+end
+
+local function log(text)
+	io.stdout:write(string.format("%s\n",text))
+end
+
 -- Shuffle
 local function shuffle(tbl)
 	for i = #tbl, 2, -1 do
@@ -61,8 +69,6 @@ end
 
 local function uuid()
 	local random = math.random
-	-- Create new random seed
-	math.randomseed(os.time())
     local template ='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
     return string.gsub(template, '[xy]', function (c)
         local v = (c == 'x') and random(0, 0xf) or random(8, 0xb)
@@ -78,6 +84,8 @@ local function get_raded_index()
 end
 
 local utils = {
+	log_err = log_err,
+	log = log,
 	shuffle = shuffle,
 	shallow_copy = shallow_copy,
 	empty_2d_array = empty_2d_array,
