@@ -21,7 +21,7 @@ function Coord:new(row,col)
 end
 
 function Coord:debug()
-	print(string.format("From : (%s %s)",self.row , self.col))
+	utils.log(string.format("From : (%s %s)",self.row , self.col))
 end
 
 local Boat = {
@@ -50,7 +50,7 @@ function Block:new()
 	setmetatable(obj,self)
 	self.__index = self
 	obj.state = BlockState.blank
-	obj.owner = nil
+	obj.owner = " "
 	return obj
 end
 
@@ -61,18 +61,14 @@ local Direction = {
 }
 
 local LineState = {
-	start_index = nil,
-	end_index = nil,
-	available_maxium_space = 0,
+	available_space = 0,
 }
 
-function LineState:new(start_index,end_index,space)
+function LineState:new(space)
 	local o = {}
 	setmetatable(o,self)
 	self.__index  = self
-	o.start_index = start_index
-	o.end_index   = end_index
-	o.available_maxium_space = space
+	o.available_space = space
 	return o
 end
 
@@ -87,13 +83,6 @@ local FieldState = {
 
 ---- <FieldStateMethod>
 
--- TODO
--- Implement method of
---
--- generate_ships
-
--- TODO
--- Rather than empy table, make a whole playable table
 function FieldState:new()
 	local o = {}
 	setmetatable(o,self)
@@ -106,10 +95,10 @@ function FieldState:new()
 	)
 	-- Declare values
 	for i = 1,self.row_count do
-		o.cols[i] = LineState:new(1,self.row_count,self.row_count)
+		o.cols[i] = LineState:new(self.row_count)
 	end
 	for i = 1,self.col_count do
-		o.rows[i] = LineState:new(1,self.col_count,self.col_count)
+		o.rows[i] = LineState:new(self.col_count)
 	end
 	o.boats = {}
 	return o
@@ -119,40 +108,18 @@ function FieldState:debug()
 	local string = ""
 	for row = 1,self.col_count do
 		for col = 1,self.row_count do
-			string = string .. tostring(self.field[col][row].state) .. ","
+			string = string .. tostring(self.field[col][row].owner) .. ","
 		end
 			string = string .. "\n"
 	end
 
-	print(string)
+	utils.log(string)
 
 	for i,v in pairs(self.boats) do
-		print("I : " .. i)
+		utils.log("I : " .. i)
 		v.start_coord:debug()
 		v.end_coord:debug()
 	end
-end
-
--- Return true if succeed
--- Return false if failed
--- Retrun nil if indexing is out of range
-function FieldState:attack(row,col)
-	if row < 1 or row > self.row_count or col < 1 or col > self.col_count then
-		print("Row or column is out of range")
-		return nil
-	end
-
-	-- Attack only if occupied
-	-- row col is inversed in 2d array implementation
-	if self.field[col][row].state == BlockState.occupied then
-		self.field[col][row].state = BlockState.attacked
-		return true
-	end
-
-	-- TODO
-	-- Check destroyed ships
-
-	return false
 end
 
 function FieldState:index_coord(coord)
@@ -160,7 +127,7 @@ function FieldState:index_coord(coord)
 	local col = coord.col
 
 	if row < 1 or row > self.row_count or col < 1 or col > self.col_count then
-		print("Row or column is out of range")
+		utils.log_err("Row or column is out of range")
 		return nil
 	end
 	-- row col is inversed in 2d array implementation
@@ -169,16 +136,41 @@ end
 
 function FieldState:index(row,col)
 	if row < 1 or row > self.row_count or col < 1 or col > self.col_count then
-		print("Row or column is out of range")
+		utils.log_err("Row or column is out of range")
 		return nil
 	end
 	-- row col is inversed in 2d array implementation
 	return self.field[col][row]
 end
 
+-- Return true if succeed
+-- Return false if failed
+-- Retrun nil if indexing is out of range
+function FieldState:attack(row,col)
+	if row < 1 or row > self.row_count or col < 1 or col > self.col_count then
+		utils.log_err("Row or column is out of range")
+		return nil
+	end
+
+	-- Attack only if occupied
+	-- row col is inversed in 2d array implementation
+	local block = self.field[col][row]
+	if block.state == BlockState.occupied then
+		block.state = BlockState.attacked
+		self.boats[block.owner].hp = self.boats[block.owner].hp - 1
+		return true
+	end
+
+	--  Make attack methodTODO
+	-- Check destroyed ships
+
+	return false
+end
+
+
 function FieldState:occupy(row,col)
 	if row < 1 or row > self.row_count or col < 1 or col > self.col_count then
-		print("Row or column is out of range")
+		utils.log_err("Row or column is out of range")
 		return nil
 	end
 
@@ -203,16 +195,65 @@ function FieldState:get_line_length(dir)
 	end
 end
 
-function FieldState:get_line_content_start_end(boat_size,line_length,line)
-	local content_index_start,content_index_end = 0,0
-	-- from end index to line_length
-	if line_length - line.end_index > boat_size then
-		content_index_start = line.end_index
-		content_index_end   = line_length
-	else -- From 1 to start index
-		content_index_start = 1
-		content_index_end   = line.end_index
+-- Return value of nil,nil means space is not sufficient
+function FieldState:get_line_content_start_end(dir,boat_size,line_index)
+	-- Initial value
+	local content_index_start,content_index_end = nil,nil
+	local remainder = 0
+
+	-- Index coordinate that is used for iteration
+	local index_coord = Coord:new(line_index,line_index) -- Default is line_index
+	local inc_target = "row" -- Either row or column
+
+	-- Set to col if horizontal
+	if dir == Direction.horizontal then 
+		inc_target = "col"
 	end
+
+	-- Iterate
+	for content_index = 1,self:get_line_length(dir) do
+		index_coord[inc_target] = content_index -- Set corresponding index value
+		if self:index_coord(index_coord).state == BlockState.blank then
+			if not content_index_start then -- Start is nil
+				content_index_start = content_index
+				content_index_end = content_index
+			else -- consequent blocks
+				content_index_end = content_index
+
+				-- surplus blocks
+				if content_index_end - content_index_start >= boat_size then
+					remainder = remainder + 1
+				end
+			end
+		else -- Found non-blank value
+			if content_index_start and content_index_end then
+				-- Sufficient boat spce
+				if content_index_end - content_index_start >= boat_size then
+					break
+				end
+			end
+			-- Insufficient boat space
+			content_index_start, content_index_end = nil,nil
+			remainder = 0
+		end
+	end
+
+	if content_index_start and content_index_end then
+
+		-- Check if boat space is sufficient
+		if content_index_end - content_index_start < boat_size then
+			return nil,nil
+		end
+
+		-- Calculate offset and randomize boat position
+		if remainder ~= 0 then
+			local start_offset = random(0,remainder)
+			local end_offset = remainder - start_offset
+			content_index_start = content_index_start + start_offset
+			content_index_end = content_index_end - end_offset
+		end
+	end
+
 	return content_index_start, content_index_end
 end
 
@@ -228,38 +269,21 @@ function FieldState:get_coord_start_end(current_dir,line_index,content_index_sta
 		max_coord = Coord:new(line_index,content_index_end)
 	end
 
-	print("Line index : " .. line_index)
-	print("Adding boat of ... dir = " .. current_dir)
-	min_coord:debug()
-	max_coord:debug()
-
 	return min_coord,max_coord
 end
 
-function FieldState:get_offset_index_start_end(boat_size,content_index_start, content_index_end)
-	-- set offset
-	-- remainder can be 0
-	local remainder = (content_index_end - content_index_start) - boat_size
-	local start_offset = random(0,remainder)
-	local end_offset = remainder - start_offset
-	content_index_start = content_index_start + start_offset
-	content_index_end = content_index_end - end_offset
-	return content_index_start, content_index_end
-end
-
-function FieldState:construct_boat(current_dir,boat_size,line,line_index)
+function FieldState:construct_boat(current_dir,boat_size,line_index)
 	-- Name is simply a boat size to string
 	local boat_name   = tostring(boat_size)
 	local lines_iter  = self:get_lines(current_dir)
-	local line_length = self:get_line_length(current_dir)
 
 	-- Get line's content indices
 	local content_index_start,content_index_end
-		= self:get_line_content_start_end(boat_size,line_length,line);
+		= self:get_line_content_start_end(current_dir,boat_size,line_index);
 
-	-- Set offset for indices
-	content_index_start, content_index_end =
-		self:get_offset_index_start_end(boat_size,content_index_start,content_index_end);
+	if not content_index_start then
+		return false
+	end
 
 	-- This should come after setting offset
 	-- Get min,max coord of boat object
@@ -296,22 +320,14 @@ function FieldState:construct_boat(current_dir,boat_size,line,line_index)
 
 	-- Update information
 	local line_state = lines_iter[line_index]
-	line_state.start_index            = content_index_start
-	line_state.end_index              = content_index_end
-	line_state.available_maxium_space = line_length - boat_size
+	line_state.available_space = line_state.available_space - boat_size
+
+	return true
 end
 
--- TODO
--- Direction ought be placed outside? Not inside?
 function FieldState:place_boat(boat_size)
 	local placed = false
 	while not placed do
-		-- TODO DEBUG
-		-- Remove this line
-		-- TODO
-		-- Swap direction when it didn't find anything
-		-- Rather than random distribution, make it uniformly distributed
-		-- Also line iteration can be also randomized
 		-- Get random direction
 		local current_dir = random(Direction.horizontal, Direction.vertical)
 
@@ -329,38 +345,48 @@ function FieldState:place_boat(boat_size)
 		for _,index in pairs(shuffled) do
 			local line = lines[index]
 			-- Line has enough space to place boat
-			if line.available_maxium_space >= boat_size then
+			if line.available_space >= boat_size then
 				-- Construct boat
-				self:construct_boat(current_dir,boat_size,line,index)
+				local success = self:construct_boat(current_dir,boat_size,index)
 
 				-- BREAK from loop
-				placed = true -- break while loop by setting conditional variable
-				break         -- Break lines loop
+				if success then
+					placed = true -- break while loop by setting conditional variable
+					break         -- Break lines loop
+				end
+
 			end
 		end -- End lines iteration
 	end     -- End while loop
 end         -- End function
 
-function FieldState:generate_map()
-	local boat_sizes = { 5,6,7,8,9 }
-	-- local boat_sizes = {5,6}
-
+function FieldState:generate_map(boat_sizes)
 	for _,size in ipairs(boat_sizes) do
-		print("Set boat of " .. size)
 		self:place_boat(size)
 	end
 end
 
 ---- </FieldStateMethod>
 
-local game_state = {
-	["id"]= "",
-	--["player"] = FieldState:new(),
-	--["computer"] = FieldState:new(),
+local GameState = {
+	boat_sizes = { 3,3,4,5,6,7 },
+	id= "",
+	player = {},
+	computer = {},
 }
 
+function GameState:new()
+	local o = {}
+	setmetatable(o,self)
+	self.__index  = self
+	o.id = utils.uuid()
+	o.player = FieldState:new()
+	o.player:generate_map(self.boat_sizes)
+	o.computer = FieldState:new()
+	o.computer:generate_map(self.boat_sizes)
+	return o
+end
+
 return {
-	FieldState = FieldState,
-	user_state = FieldState,
-	game_state = game_state,
+	GameState = GameState,
 }
