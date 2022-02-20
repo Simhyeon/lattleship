@@ -3,9 +3,10 @@ local random = math.random
 
 -- Enum BlockState
 local BlockState = {
-	blank = 1,
-	occupied = 2,
-	attacked = 3,
+	blank    = "blank",
+	occupied = "occupied",
+	attacked = "attacked",
+	cleared  = "cleared"
 }
 
 local Coord = {
@@ -42,7 +43,8 @@ end
 
 local Block =  {
 	state = BlockState.blank,
-	owner = nil,
+	owner = Boat,
+	display = "",
 }
 
 function Block:new()
@@ -50,7 +52,8 @@ function Block:new()
 	setmetatable(obj,self)
 	self.__index = self
 	obj.state = BlockState.blank
-	obj.owner = " "
+	obj.owner = nil
+	obj.display = " "
 	return obj
 end
 
@@ -83,14 +86,16 @@ local FieldState = {
 
 ---- <FieldStateMethod>
 
-function FieldState:new()
+function FieldState:new(row_count,col_count)
 	local o = {}
 	setmetatable(o,self)
 	self.__index = self
+	o.row_count = row_count
+	o.col_count = col_count
 	-- Assign new empty field
 	o.field = utils.empty_2d_array(
-		self.row_count,
-		self.col_count,
+		row_count,
+		col_count,
 		Block:new()
 	)
 	-- Declare values
@@ -108,18 +113,18 @@ function FieldState:debug()
 	local string = ""
 	for row = 1,self.col_count do
 		for col = 1,self.row_count do
-			string = string .. tostring(self.field[col][row].owner) .. ","
+			local block = self.field[col][row]
+			-- Display as crossed if attacked
+			if block.state == BlockState.attacked then
+				string = string .. "x."
+			else
+				string = string .. tostring(block.display) .. "."
+			end
 		end
 			string = string .. "\n"
 	end
 
 	utils.log(string)
-
-	for i,v in pairs(self.boats) do
-		utils.log("I : " .. i)
-		v.start_coord:debug()
-		v.end_coord:debug()
-	end
 end
 
 function FieldState:index_coord(coord)
@@ -157,13 +162,25 @@ function FieldState:attack(row,col)
 	local block = self.field[col][row]
 	if block.state == BlockState.occupied then
 		block.state = BlockState.attacked
-		self.boats[block.owner].hp = self.boats[block.owner].hp - 1
+
+		local boat = block.owner
+		boat.hp = boat.hp - 1
+
+		-- Destroy ship which,
+		-- removes boat from available stack
+		if boat.hp <= 0 then
+			table.remove(self.boats,boat)
+		end
+
+		return true
+	elseif block.state == BlockState.blank then
+		block.state = BlockState.cleared
 		return true
 	end
 
-	--  Make attack methodTODO
-	-- Check destroyed ships
-
+	-- Nothing has changed...
+	-- It's better not be executed at the first time, ( prevented by client )
+	-- but it can happen
 	return false
 end
 
@@ -258,8 +275,8 @@ function FieldState:get_line_content_start_end(dir,boat_size,line_index)
 end
 
 function FieldState:get_coord_start_end(current_dir,line_index,content_index_start,content_index_end)
-	local min_coord = {}
-	local max_coord = {}
+	local min_coord = Coord
+	local max_coord = Coord
 
 	if current_dir == Direction.vertical then
 		min_coord = Coord:new(content_index_start,line_index)
@@ -294,6 +311,10 @@ function FieldState:construct_boat(current_dir,boat_size,line_index)
 		content_index_end
 	);
 
+	-- Add boat to boat map
+	local boat = Boat:new(min_coord,max_coord,boat_size)
+	self.boats[boat_name] = boat
+
 	-- Set default value for iteration coord value
 	local coord = Coord:new(line_index,line_index)
 
@@ -309,14 +330,11 @@ function FieldState:construct_boat(current_dir,boat_size,line_index)
 		end
 
 		-- Set block as occupied and set owner
-		local block = self:index_coord(coord)
-		block.state = BlockState.occupied
-		block.owner = boat_name
+		local block   = self:index_coord(coord)
+		block.state   = BlockState.occupied
+		block.owner   = boat
+		block.display = boat_name
 	end
-
-	-- Add boat to boat map
-	local boat = Boat:new(min_coord,max_coord,boat_size)
-	self.boats[boat_name] = boat
 
 	-- Update information
 	local line_state = lines_iter[line_index]
@@ -334,11 +352,12 @@ function FieldState:place_boat(boat_size)
 		-- Set local loop variants
 		local lines = self:get_lines(current_dir)
 
-		local iterable = {}
+		local iterable = {} -- Array
 		for i = 1,self:get_line_length(current_dir) do
 			iterable[i] = i
 		end
 
+		-- Shuffle for randomess of indexing
 		local shuffled = utils.shuffle(iterable)
 
 		-- Iterate through lines and find 'placeable' line
@@ -369,24 +388,119 @@ end
 ---- </FieldStateMethod>
 
 local GameState = {
+	row_count = 10,
+	col_count = 10,
 	boat_sizes = { 3,3,4,5,6,7 },
 	id= "",
-	player = {},
-	computer = {},
+	player = FieldState,
+	computer = FieldState,
 }
 
-function GameState:new()
+local GameFlow = {
+	On = "on",
+	End = "end",
+}
+
+function GameState:new(row_count,col_count,boat_sizes)
 	local o = {}
 	setmetatable(o,self)
 	self.__index  = self
+	o.row_count = row_count
+	o.col_count = col_count
+	o.boat_sizes = boat_sizes
 	o.id = utils.uuid()
-	o.player = FieldState:new()
-	o.player:generate_map(self.boat_sizes)
-	o.computer = FieldState:new()
-	o.computer:generate_map(self.boat_sizes)
+	o.player = FieldState:new(row_count,col_count)
+	o.player:generate_map(boat_sizes)
+	o.computer = FieldState:new(row_count,col_count)
+	o.computer:generate_map(boat_sizes)
 	return o
 end
 
+function GameState:check_victory(target)
+	if target == "player" then
+		if #self.computer.boats == 0 then
+			return true
+		end
+	else
+		if #self.player.boats == 0 then
+			return true
+		end
+	end
+
+	return false
+end
+
+function GameState:try_attack_computer(row,col)
+	local changed = self.computer:attack(row,col)
+
+	if self:check_victory() then
+		return GameFlow.End, changed
+	else
+		return GameFlow.On, changed
+	end
+end
+
+function GameState:try_attack_player()
+	-- TODO
+	-- This is just too naive solution
+	-- Make computer more smarter
+	local row,col = math.random(1,self.row_count), math.random(1,self.col_count)
+	local changed = self.computer:attack(row,col)
+
+	if self:check_victory() then
+		return GameFlow.End, changed
+	else
+		return GameFlow.On, changed
+	end
+end
+
+local ActionResult = {
+	game_state = GameState,
+	new_player_blocks = {},
+	new_computer_blocks = {},
+}
+
+function ActionResult:new(state,player_blocks,computer_blocks)
+	local obj = {}
+	setmetatable(obj,self)
+	self.__index = self
+	obj.game_state = state
+	obj.new_player_blocks   = player_blocks
+	obj.new_computer_blocks = computer_blocks
+	return obj
+end
+
+function GameState:player_action(row,col)
+	-- Try attacking for both "players"
+	local player_flow,player_changed     = self:try_attack_computer(row,col)
+	local computer_flow,computer_changed = self:try_attack_player()
+	local final_flow = GameFlow.On
+
+	-- Check if flow should change
+	if player_flow == GameFlow.End or computer_flow == GameFlow.End then
+		final_flow = GameFlow.End
+	end
+
+	-- Only send new blocks if there was change
+	local player_changed_field,computer_changed_field = nil,nil
+	if player_changed then
+		player_changed_field = self.player.field
+	end
+	if computer_changed then
+		computer_changed_field = self.computer.field
+	end
+
+	-- Create result
+	local result = ActionResult:new(
+		final_flow,
+		player_changed_field,
+		computer_changed_field
+	)
+
+	return result
+end
+
 return {
+	GameFlow = GameFlow,
 	GameState = GameState,
 }
