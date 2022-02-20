@@ -42,6 +42,18 @@ local function empty_2d_array(row,col,value)
 	return grid
 end
 
+local function to_simple_block_array(source,row,col)
+	local grid = {}
+	for i = 1,col do
+		grid[i] = {}
+		for j = 1,row do
+			-- Copy a given value if the value is a table
+			grid[i][j] = source[i][j].state
+		end
+	end
+	return grid
+end
+
 -- Split command with given separator
 local function split_string(inputstr, sep)
 	if sep == nil or sep == "" then
@@ -88,6 +100,7 @@ local utils = {
 	log = log,
 	shuffle = shuffle,
 	shallow_copy = shallow_copy,
+	to_simple_block_array = to_simple_block_array,
 	empty_2d_array = empty_2d_array,
 	split_string = split_string,
 	parse_url_body = parse_url_body,
