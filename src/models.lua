@@ -41,7 +41,7 @@ function Boat:new(start_coord,end_coord,hp)
 	return obj
 end
 
-local Block =  {
+local Block = {
 	state = BlockState.blank,
 	owner = Boat,
 	display = "",
@@ -78,7 +78,7 @@ end
 local FieldState = {
 	row_count = 10,
 	col_count = 10,
-	field = {},
+	blocks = {},
 	rows = {},  -- array
 	cols = {},  -- array
 	boats = {}, -- array
@@ -92,8 +92,8 @@ function FieldState:new(row_count,col_count)
 	self.__index = self
 	o.row_count = row_count
 	o.col_count = col_count
-	-- Assign new empty field
-	o.field = utils.empty_2d_array(
+	-- Assign new empty blocks
+	o.blocks = utils.empty_2d_array(
 		row_count,
 		col_count,
 		Block:new()
@@ -113,7 +113,7 @@ function FieldState:debug()
 	local string = ""
 	for row = 1,self.col_count do
 		for col = 1,self.row_count do
-			local block = self.field[col][row]
+			local block = self.blocks[col][row]
 			-- Display as crossed if attacked
 			if block.state == BlockState.attacked then
 				string = string .. "x."
@@ -121,7 +121,7 @@ function FieldState:debug()
 				string = string .. tostring(block.display) .. "."
 			end
 		end
-			string = string .. "\n"
+		string = string .. "\n"
 	end
 
 	utils.log(string)
@@ -136,7 +136,7 @@ function FieldState:index_coord(coord)
 		return nil
 	end
 	-- row col is inversed in 2d array implementation
-	return self.field[col][row]
+	return self.blocks[col][row]
 end
 
 function FieldState:index(row,col)
@@ -145,12 +145,11 @@ function FieldState:index(row,col)
 		return nil
 	end
 	-- row col is inversed in 2d array implementation
-	return self.field[col][row]
+	return self.blocks[col][row]
 end
 
--- Return true if succeed
--- Return false if failed
--- Retrun nil if indexing is out of range
+-- Return coord if anything changed
+-- Retrun nil if indexing is out of range or nothing has changed
 function FieldState:attack(row,col)
 	if row < 1 or row > self.row_count or col < 1 or col > self.col_count then
 		utils.log_err("Row or column is out of range")
@@ -159,7 +158,7 @@ function FieldState:attack(row,col)
 
 	-- Attack only if occupied
 	-- row col is inversed in 2d array implementation
-	local block = self.field[col][row]
+	local block = self.blocks[col][row]
 	if block.state == BlockState.occupied then
 		block.state = BlockState.attacked
 
@@ -172,16 +171,16 @@ function FieldState:attack(row,col)
 			table.remove(self.boats,boat)
 		end
 
-		return true
+		return Coord:new(row,col)
 	elseif block.state == BlockState.blank then
 		block.state = BlockState.cleared
-		return true
+		return Coord:new(row,col)
 	end
 
 	-- Nothing has changed...
 	-- It's better not be executed at the first time, ( prevented by client )
 	-- but it can happen
-	return false
+	return nil
 end
 
 
@@ -192,7 +191,7 @@ function FieldState:occupy(row,col)
 	end
 
 	-- row col is inversed in 2d array implementation
-	self.field[col][row].state = BlockState.occupied
+	self.blocks[col][row].state = BlockState.occupied
 	return true
 end
 
@@ -402,6 +401,10 @@ local GameFlow = {
 }
 
 function GameState:new(row_count,col_count,boat_sizes)
+	if not row_count or not col_count or not boat_sizes then
+		utils.log_err("Insufficient arguments for gamestate constructor")
+		return nil
+	end
 	local o = {}
 	setmetatable(o,self)
 	self.__index  = self
@@ -456,19 +459,9 @@ end
 
 local ActionResult = {
 	game_state = GameState,
-	new_player_blocks = {},
-	new_computer_blocks = {},
+	new_player_block = {},
+	new_computer_block = {},
 }
-
-function ActionResult:new(state,player_blocks,computer_blocks)
-	local obj = {}
-	setmetatable(obj,self)
-	self.__index = self
-	obj.game_state = state
-	obj.new_player_blocks   = player_blocks
-	obj.new_computer_blocks = computer_blocks
-	return obj
-end
 
 function GameState:player_action(row,col)
 	-- Try attacking for both "players"
@@ -482,20 +475,28 @@ function GameState:player_action(row,col)
 	end
 
 	-- Only send new blocks if there was change
-	local player_changed_field,computer_changed_field = nil,nil
+	local p_block,c_block = nil,nil
 	if player_changed then
-		player_changed_field = self.player.field
+		p_block = {
+			state = self.player.index_coord(player_changed).state,
+			row = player_changed.row,
+			col = player_changed.col,
+		}
 	end
 	if computer_changed then
-		computer_changed_field = self.computer.field
+		c_block = {
+			state = self.computer.index_coord(computer_changed).state,
+			row = computer_changed.row,
+			col = computer_changed.col,
+		}
 	end
 
 	-- Create result
-	local result = ActionResult:new(
-		final_flow,
-		player_changed_field,
-		computer_changed_field
-	)
+	local result = {
+		state = final_flow,
+		player = p_block,
+		computer = c_block
+	}
 
 	return result
 end
