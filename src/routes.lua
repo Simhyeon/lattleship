@@ -1,10 +1,13 @@
 local utils = require("./utils")
+local models= require("./models")
 
 local index_file = "index.html"
 local fs = require('fs')
+local json = require('json').use_lpeg()
 
 -- Sadly it has to be a global variable
-connection = {}
+local connection = {}
+local boat_sizes = { 3,3,4,4,5,6 }
 
 -- Send static file
 local function game(_, res)
@@ -14,7 +17,6 @@ local function game(_, res)
 	res.code = 200
 	-- Read file and send to response
 	local file = utils.get_raded_index()
-	print(file)
 	res.body = file
 end
 
@@ -32,8 +34,24 @@ local function start(_, res)
 	end
 
 	-- Add gamestate inside connection
-	-- CONNECTION[id] = GameState.new()
-	res.body = string.format("{\"conn_id\" : \"%s\"}",id)
+	local state = models.GameState:new(10,10,boat_sizes)
+	connection[id] = state
+
+	state.player:debug()
+	state.computer:debug()
+
+	local player_blocks = utils.to_simple_block_array(state.player.blocks,state.row_count,state.col_count)
+	local computer_blocks = utils.to_simple_block_array(state.computer.blocks,state.row_count,state.col_count)
+
+	-- Send json body to client
+	local body = {
+		id       = id,
+		player   = player_blocks,
+		computer = computer_blocks,
+	}
+
+	-- This fails because of Block instance wich has "new" method
+	res.body = json.stringify(body)
 end
 
 -- TODO
