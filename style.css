@@ -38,8 +38,10 @@ html, body {
 
 .blank {
 	background: white;
+	cursor: pointer;
 }
 
+/* Only for player block thus, don't have to be clickable */
 .occupied {
 	background: gray;
 }
