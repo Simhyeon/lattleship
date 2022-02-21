@@ -41,7 +41,7 @@ local function start(_, res)
 	state.computer:debug()
 
 	local player_blocks = utils.to_simple_block_array(state.player.blocks,state.row_count,state.col_count)
-	local computer_blocks = utils.to_simple_block_array(state.computer.blocks,state.row_count,state.col_count)
+	local computer_blocks = utils.empty_2d_array(state.row_count,state.col_count,"blank")
 
 	-- Send json body to client
 	local body = {
@@ -60,15 +60,15 @@ local function pick(req,res)
 	print("ROUTE--pick")
 	res.headers["Content-Type"] = "text/json"
 	res.code = 200
+
 	local body_table = utils.parse_url_body(req.body)
-	local state = connection[body_table["id"]]
+	local state      = connection[body_table["id"]]
+	local result     = state:player_action(
+		tonumber(body_table["row"]),
+		tonumber(body_table["col"])
+	)
 
-	-- TODO
-	-- Check body and apply information to state
-
-	-- TODO
-	-- Send back result
-	res.body = "{}"
+	res.body = json.stringify(result)
 end
 
 local route = {

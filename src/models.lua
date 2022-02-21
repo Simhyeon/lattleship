@@ -168,7 +168,8 @@ function FieldState:attack(row,col)
 		-- Destroy ship which,
 		-- removes boat from available stack
 		if boat.hp <= 0 then
-			table.remove(self.boats,boat)
+			utils.remove_from_table(self.boats,boat)
+			print("Boat destroyed. Remaining : " .. utils.get_length(self.boats))
 		end
 
 		return Coord:new(row,col)
@@ -218,7 +219,7 @@ function FieldState:get_line_content_start_end(dir,boat_size,line_index)
 	local remainder = 0
 
 	-- Index coordinate that is used for iteration
-	local index_coord = Coord:new(line_index,line_index) -- Default is line_index
+	local idx = Coord:new(line_index,line_index) -- Default is line_index
 	local inc_target = "row" -- Either row or column
 
 	-- Set to col if horizontal
@@ -228,8 +229,8 @@ function FieldState:get_line_content_start_end(dir,boat_size,line_index)
 
 	-- Iterate
 	for content_index = 1,self:get_line_length(dir) do
-		index_coord[inc_target] = content_index -- Set corresponding index value
-		if self:index_coord(index_coord).state == BlockState.blank then
+		idx[inc_target] = content_index -- Set corresponding index value
+		if self:index_coord(idx).state == BlockState.blank then
 			if not content_index_start then -- Start is nil
 				content_index_start = content_index
 				content_index_end = content_index
@@ -312,7 +313,7 @@ function FieldState:construct_boat(current_dir,boat_size,line_index)
 
 	-- Add boat to boat map
 	local boat = Boat:new(min_coord,max_coord,boat_size)
-	self.boats[boat_name] = boat
+	self.boats[utils.get_length(self.boats) + 1] = boat
 
 	-- Set default value for iteration coord value
 	local coord = Coord:new(line_index,line_index)
@@ -421,11 +422,11 @@ end
 
 function GameState:check_victory(target)
 	if target == "player" then
-		if #self.computer.boats == 0 then
+		if utils.get_length(self.computer.boats) == 0 then
 			return true
 		end
 	else
-		if #self.player.boats == 0 then
+		if utils.get_length(self.player.boats) == 0 then
 			return true
 		end
 	end
@@ -436,7 +437,7 @@ end
 function GameState:try_attack_computer(row,col)
 	local changed = self.computer:attack(row,col)
 
-	if self:check_victory() then
+	if self:check_victory("player") then
 		return GameFlow.End, changed
 	else
 		return GameFlow.On, changed
@@ -448,9 +449,15 @@ function GameState:try_attack_player()
 	-- This is just too naive solution
 	-- Make computer more smarter
 	local row,col = math.random(1,self.row_count), math.random(1,self.col_count)
-	local changed = self.computer:attack(row,col)
+	local block = self.player:index(row,col)
+	-- Get block again if attacked or cleared
+	while block.state == BlockState.attacked or block.state == BlockState.cleared do
+		row,col = math.random(1,self.row_count), math.random(1,self.col_count)
+		block = self.player:index(row,col)
+	end
+	local changed = self.player:attack(row,col)
 
-	if self:check_victory() then
+	if self:check_victory("computer") then
 		return GameFlow.End, changed
 	else
 		return GameFlow.On, changed
@@ -465,8 +472,8 @@ local ActionResult = {
 
 function GameState:player_action(row,col)
 	-- Try attacking for both "players"
-	local player_flow,player_changed     = self:try_attack_computer(row,col)
-	local computer_flow,computer_changed = self:try_attack_player()
+	local player_flow,computer_changed     = self:try_attack_computer(row,col)
+	local computer_flow,player_changed = self:try_attack_player()
 	local final_flow = GameFlow.On
 
 	-- Check if flow should change
@@ -478,14 +485,14 @@ function GameState:player_action(row,col)
 	local p_block,c_block = nil,nil
 	if player_changed then
 		p_block = {
-			state = self.player.index_coord(player_changed).state,
+			state = self.player:index_coord(player_changed).state,
 			row = player_changed.row,
 			col = player_changed.col,
 		}
 	end
 	if computer_changed then
 		c_block = {
-			state = self.computer.index_coord(computer_changed).state,
+			state = self.computer:index_coord(computer_changed).state,
 			row = computer_changed.row,
 			col = computer_changed.col,
 		}

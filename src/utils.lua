@@ -1,9 +1,32 @@
+local function remove_from_table(source,val)
+		local index = nil
+		for i, v in ipairs(source) do
+			if (v == val) then
+				index = i
+			end
+		end
+		if index == nil then
+			print("Key does not exist")
+		else
+			table.remove(source, index)
+		end
+	end
+
 local function log_err(text)
 	io.stderr:write(string.format("ERR : %s\n",text))
 end
 
 local function log(text)
 	io.stdout:write(string.format("%s\n",text))
+end
+
+-- Get table length
+function get_length(tbl)
+  local getN = 0
+  for n in pairs(tbl) do
+    getN = getN + 1
+  end
+  return getN
 end
 
 -- Shuffle
@@ -96,6 +119,8 @@ local function get_raded_index()
 end
 
 local utils = {
+	remove_from_table = remove_from_table,
+	get_length = get_length,
 	log_err = log_err,
 	log = log,
 	shuffle = shuffle,
