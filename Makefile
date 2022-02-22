@@ -20,7 +20,7 @@ setup:
 build: bundle.html
 
 bundle.html: index.html style.css index.js
-	./bin/rad -a fin index.html -o $@
+	./bin/rad -a fin+env index.html -o $@
 
 # Serve
 # - Don't suppress
