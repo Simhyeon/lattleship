@@ -1,4 +1,4 @@
-$static(max_width,720px)
+$static(max_width,720)
 
 html, body {
 	height: 100%;
@@ -13,7 +13,7 @@ html, body {
 	border-bottom: 1px solid;
 	padding-bottom: 5px;
 	margin: auto;
-	max-width: $max_width();
+	max-width: $max_width()px;
 }
 
 #start-button {
@@ -26,21 +26,45 @@ html, body {
 
 /* Whole screen */
 #panel {
-	max-width: $max_width();
+	max-width: $max_width()px;
 	margin: auto;
 	display: flex;
 	flex-direction: row;
+	flex-wrap: wrap-reverse;
 }
 
 #player-area, #computer-area {
-	flex: 1;
+	flex-grow: 1;
+	min-width: calc($max_width()px / 2);
 	display: flex;
 	flex-direction: column;
 	text-align: center;
 }
 
-#player-field {
-	margin-right: 15px;
+/* Biggest */
+@media (min-width: 750px) {
+	#player-field {
+		margin-right: 15px;
+	}
+}
+
+/* In between */
+@media (max-width: 750px) and (min-width: calc($max_width()px / 2)) {
+	#panel {
+		max-width: calc($max_width()px / 2) !important;
+	}
+}
+
+/* Smallest */
+@media (max-width: calc($max_width()px / 2)) {
+	#player-area, #computer-area {
+		min-width : calc($max_width()px / 2 - 50px) !important;
+	}
+
+	#panel {
+		max-width: 0;
+		margin: 0;
+	}
 }
 
 #player-field, #computer-field {
