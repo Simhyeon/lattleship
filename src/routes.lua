@@ -16,7 +16,7 @@ local boat_sizes = { 3 }
 
 -- Send static file
 local function game(_, res)
-	print("ROUTE--game")
+	utils.log("ROUTE--game")
 	-- Set options
 	res.headers["Content-Type"] = "text/html"
 	res.code = 200
@@ -27,7 +27,7 @@ end
 
 -- Create id and send back to user
 local function start(_, res)
-	print("ROUTE--start")
+	utils.log("ROUTE--start")
 	-- Set options
 	res.headers["Content-Type"] = "text/json"
 	res.code = 200
@@ -64,7 +64,7 @@ local function start(_, res)
 end
 
 local function refresh(req,res)
-	print("ROUTE--pick")
+	utils.log("ROUTE--refresh")
 	res.headers["Content-Type"] = "text/json"
 	res.code = 200 -- Default is ok
 
@@ -90,7 +90,7 @@ local function refresh(req,res)
 end
 
 local function pick(req,res)
-	print("ROUTE--pick")
+	utils.log("ROUTE--pick")
 	res.headers["Content-Type"] = "text/json"
 	res.code = 200 -- Default is ok
 
@@ -140,7 +140,7 @@ timer.setInterval(check_interval, function()
 	for i,v in pairs(connection) do
 		-- 60 seconds has passed
 		if os.time() - v.last_time >= timeout_interval then
-			print(i .. " : timeout")
+			utils.log(i .. " : timeout")
 			connection[i] = nil
 		end
 	end
