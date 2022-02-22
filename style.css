@@ -82,3 +82,7 @@ html, body {
 .attacked {
 	background: red;
 }
+
+.blurred {
+	opacity: 0.3;
+}
