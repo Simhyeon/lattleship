@@ -1,17 +1,3 @@
-local function remove_from_array(source,val)
-		local index = nil
-		for i, v in ipairs(source) do
-			if (v == val) then
-				index = i
-			end
-		end
-		if index == nil then
-			print("Key does not exist")
-		else
-			table.remove(source, index)
-		end
-	end
-
 local function log_err(text)
 	io.stderr:write(string.format("ERR : %s\n",text))
 end
@@ -20,13 +6,27 @@ local function log(text)
 	io.stdout:write(string.format("%s\n",text))
 end
 
+local function remove_from_array(source,val)
+	local index = nil
+	for i, v in ipairs(source) do
+		if (v == val) then
+			index = i
+		end
+	end
+	if index == nil then
+		log_err("Failed to remove key from table.=\nERR : Key does not exist")
+	else
+		table.remove(source, index)
+	end
+end
+
 -- Get table length
-function get_length(tbl)
-  local getN = 0
-  for n in pairs(tbl) do
-    getN = getN + 1
-  end
-  return getN
+local function get_length(tbl)
+	local getN = 0
+	for n in pairs(tbl) do
+		getN = getN + 1
+	end
+	return getN
 end
 
 -- Shuffle
@@ -70,8 +70,21 @@ local function to_simple_block_array(source,row,col)
 	for i = 1,col do
 		grid[i] = {}
 		for j = 1,row do
-			-- Copy a given value if the value is a table
 			grid[i][j] = source[i][j].state
+		end
+	end
+	return grid
+end
+
+local function to_computer_cache(row,col)
+	local grid = {}
+	for i = 1,col do
+		for j = 1,row do
+			local index = ((i - 1) * col) + j
+			grid[index] = {
+				row = i,
+				col = j,
+			}
 		end
 	end
 	return grid
@@ -125,6 +138,7 @@ local utils = {
 	log = log,
 	shuffle = shuffle,
 	shallow_copy = shallow_copy,
+	to_computer_cache = to_computer_cache,
 	to_simple_block_array = to_simple_block_array,
 	empty_2d_array = empty_2d_array,
 	split_string = split_string,
