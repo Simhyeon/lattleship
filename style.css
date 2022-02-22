@@ -1,18 +1,46 @@
+$static(max_width,720px)
+
 html, body {
 	height: 100%;
 }
 
+#header {
+	display: flex;
+	flex-direction: column;
+	text-align: center;
+	align-items: center;
+	margin-bottom: 5px;
+	border-bottom: 1px solid;
+	padding-bottom: 5px;
+	margin: auto;
+	max-width: $max_width();
+}
+
+#start-button {
+	min-width: 200px;
+}
+
 #main {
-	height: 100%;
 	width: 100%;
 }
 
 /* Whole screen */
 #panel {
-	height: 100%;
-	width: 100%;
+	max-width: $max_width();
+	margin: auto;
 	display: flex;
 	flex-direction: row;
+}
+
+#player-area, #computer-area {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	text-align: center;
+}
+
+#player-field {
+	margin-right: 15px;
 }
 
 #player-field, #computer-field {
@@ -29,8 +57,6 @@ html, body {
 }
 
 .block {
-	height: 100%;
-	width: 2em;
 	flex: 1;
 	margin: 1px;
 	border: 1px solid;
@@ -38,6 +64,9 @@ html, body {
 
 .blank {
 	background: white;
+}
+
+#computer-field .blank {
 	cursor: pointer;
 }
 
