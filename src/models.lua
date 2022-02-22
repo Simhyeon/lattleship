@@ -169,7 +169,7 @@ function FieldState:attack(row,col)
 		-- removes boat from available stack
 		if boat.hp <= 0 then
 			utils.remove_from_array(self.boats,boat)
-			print("Boat destroyed. Remaining : " .. utils.get_length(self.boats))
+			utils.log("Boat destroyed. Remaining count of boats are = " .. utils.get_length(self.boats))
 		end
 
 		return Coord:new(row,col)
@@ -223,7 +223,7 @@ function FieldState:get_line_content_start_end(dir,boat_size,line_index)
 	local inc_target = "row" -- Either row or column
 
 	-- Set to col if horizontal
-	if dir == Direction.horizontal then 
+	if dir == Direction.horizontal then
 		inc_target = "col"
 	end
 
@@ -394,6 +394,7 @@ local GameState = {
 	id= "",
 	player = FieldState,
 	computer = FieldState,
+	pick_cache = {},
 }
 
 local GameFlow = {
@@ -417,6 +418,7 @@ function GameState:new(row_count,col_count,boat_sizes)
 	o.player:generate_map(boat_sizes)
 	o.computer = FieldState:new(row_count,col_count)
 	o.computer:generate_map(boat_sizes)
+	o.pick_cache = utils.to_computer_cache(row_count,col_count)
 	return o
 end
 
@@ -448,14 +450,15 @@ function GameState:try_attack_player()
 	-- TODO
 	-- This is just too naive solution
 	-- Make computer more smarter
-	local row,col = math.random(1,self.row_count), math.random(1,self.col_count)
-	local block = self.player:index(row,col)
-	-- Get block again if attacked or cleared
-	while block.state == BlockState.attacked or block.state == BlockState.cleared do
-		row,col = math.random(1,self.row_count), math.random(1,self.col_count)
-		block = self.player:index(row,col)
-	end
-	local changed = self.player:attack(row,col)
+	local index = math.random(1,utils.get_length(self.pick_cache))
+	local pick = self.pick_cache[index]
+	local changed = self.player:attack(
+		tonumber(pick.row),
+		tonumber(pick.col)
+	)
+
+	-- Empty picked value from cache
+	utils.remove_from_array(self.pick_cache, pick)
 
 	if self:check_victory("computer") then
 		return GameFlow.End, changed
@@ -464,19 +467,12 @@ function GameState:try_attack_player()
 	end
 end
 
-local ActionResult = {
-	winner = nil,
-	new_player_block = {},
-	new_computer_block = {},
-}
-
 -- TODO
 -- Check victory before attack player
 function GameState:player_action(row,col)
 	-- Try attacking for both "players"
-	local player_flow,computer_changed     = self:try_attack_computer(row,col)
+	local player_flow,computer_changed = self:try_attack_computer(row,col)
 	local computer_flow,player_changed = self:try_attack_player()
-	local final_flow = GameFlow.On
 	local winner = nil
 
 	-- Check if flow should change
