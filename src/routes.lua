@@ -11,7 +11,8 @@ local timeout_interval = 1000 * 60
 
 -- Sadly it has to be a global variable
 local connection = {}
-local boat_sizes = { 3,3,4,4,5,6 }
+--local boat_sizes = { 3,3,4,4,5,6 }
+local boat_sizes = { 3 }
 
 -- Send static file
 local function game(_, res)
@@ -62,36 +63,75 @@ local function start(_, res)
 	res.body = json.stringify(body)
 end
 
--- TODO
--- Pick request
+local function refresh(req,res)
+	print("ROUTE--pick")
+	res.headers["Content-Type"] = "text/json"
+	res.code = 200 -- Default is ok
+
+	local body_table = utils.parse_url_body(req.body)
+	local id = body_table["id"]
+
+	if id then
+		local conn = connection[id]
+		if conn then
+			-- Update time
+			conn.last_time = os.time()
+		else
+			res.code = 400
+			res.body = string.format("{\"error\" : \"Given id is not registered\"}")
+		end
+	else -- No id in parameter
+		-- Bad request
+		res.code = 400
+		res.body = string.format("{\"error\" : \"No id in post parameter\"}")
+	end
+
+	res.body = "{}"
+end
+
 local function pick(req,res)
 	print("ROUTE--pick")
 	res.headers["Content-Type"] = "text/json"
-	res.code = 200
+	res.code = 200 -- Default is ok
 
 	local body_table = utils.parse_url_body(req.body)
-	local state      = connection[body_table["id"]].state
-	local result     = state:player_action(
-		tonumber(body_table["row"]),
-		tonumber(body_table["col"])
-	)
+	local id = body_table["id"]
 
-	-- Remove connection from it
-	if result.winner then
-		connection[body_table["id"]] = nil
-		utils.log("Game removed")
+	if id then
+		local conn = connection[id]
+		if conn then
+			local state      = conn.state
+			local result     = state:player_action(
+				tonumber(body_table["row"]),
+				tonumber(body_table["col"])
+			)
+
+			-- Update time
+			conn.last_time = os.time()
+
+			-- Remove connection from it
+			if result.winner then
+				connection[body_table["id"]] = nil
+				utils.log("ID removed from connection")
+			end
+
+			res.body = json.stringify(result)
+		else
+			res.code = 400
+			res.body = string.format("{\"error\" : \"Given id is not registered\"}")
+		end
+	else -- No id in parameter
+		-- Bad request
+		res.code = 400
+		res.body = string.format("{\"error\" : \"No id in post parameter\"}")
 	end
-
-	-- Update time
-	connection[body_table["id"]].last_time = os.time()
-
-	res.body = json.stringify(result)
 end
 
 local route = {
 	game = game,
 	start = start,
 	pick = pick,
+	refresh = refresh,
 }
 
 -- Set interval, though this is not the ideal place to call interval

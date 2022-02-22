@@ -14,6 +14,7 @@ weblit.app
   -- TODO: Possibley static file
   .route({ method="GET", path = "/" }, route.game)
   .route({ method="GET", path = "/start" }, route.start)
+  .route({ method="POST", path = "/refresh" }, route.refresh)
   .route({ method="POST", path = "/pick" }, route.pick)
   -- Start the server
   .start()
