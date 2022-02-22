@@ -4,6 +4,10 @@ local models= require("./models")
 local index_file = "index.html"
 local fs = require('fs')
 local json = require('json').use_lpeg()
+local timer = require('timer')
+
+local check_interval   = 1000 * 30
+local timeout_interval = 1000 * 60
 
 -- Sadly it has to be a global variable
 local connection = {}
@@ -29,13 +33,17 @@ local function start(_, res)
 	-- Read file and send to response
 	local id = utils.uuid()
 	-- Create unique uuid
+	-- If id already exists, re-generate
 	while connection[id] do
 		id = utils.uuid()
 	end
 
 	-- Add gamestate inside connection
 	local state = models.GameState:new(10,10,boat_sizes)
-	connection[id] = state
+	connection[id] = {
+		state     = state,
+		last_time = os.time()
+	}
 
 	state.player:debug()
 	state.computer:debug()
@@ -62,11 +70,20 @@ local function pick(req,res)
 	res.code = 200
 
 	local body_table = utils.parse_url_body(req.body)
-	local state      = connection[body_table["id"]]
+	local state      = connection[body_table["id"]].state
 	local result     = state:player_action(
 		tonumber(body_table["row"]),
 		tonumber(body_table["col"])
 	)
+
+	-- Remove connection from it
+	if result.winner then
+		connection[body_table["id"]] = nil
+		utils.log("Game removed")
+	end
+
+	-- Update time
+	connection[body_table["id"]].last_time = os.time()
 
 	res.body = json.stringify(result)
 end
@@ -76,6 +93,18 @@ local route = {
 	start = start,
 	pick = pick,
 }
+
+-- Set interval, though this is not the ideal place to call interval
+-- Clear timeout connection per minute
+timer.setInterval(check_interval, function()
+	for i,v in pairs(connection) do
+		-- 60 seconds has passed
+		if os.time() - v.last_time >= timeout_interval then
+			print(i .. " : timeout")
+			connection[i] = nil
+		end
+	end
+end)
 
 return {
 	route = route,
