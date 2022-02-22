@@ -2,9 +2,9 @@
 
 This is a learning project for lua.
 
-[Repl]()
-[URL]()
+[Repl](https://replit.com/@Simhyeon/lattleship)
+[URL](https://lattleship.simhyeon.repl.co)
 
 ### Demo
 
-![Demo]()
+![Demo](./docs/lattleship_demo.png)
