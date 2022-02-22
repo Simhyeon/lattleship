@@ -124,8 +124,8 @@ local function uuid()
     end)
 end
 
-local function get_raded_index()
-	local file = io.popen("./rad index.html -a fin", "r")
+local function get_index_file()
+	local file = io.open("./bundle.html", "r")
 	local data = file:read("*all")
 	file:close()
 	return data
@@ -143,7 +143,7 @@ local utils = {
 	empty_2d_array = empty_2d_array,
 	split_string = split_string,
 	parse_url_body = parse_url_body,
-	get_raded_index = get_raded_index,
+	get_index_file = get_index_file,
 	uuid = uuid,
 }
 

@@ -20,7 +20,7 @@ local function game(_, res)
 	res.headers["Content-Type"] = "text/html"
 	res.code = 200
 	-- Read file and send to response
-	local file = utils.get_raded_index()
+	local file = utils.get_index_file()
 	res.body = file
 end
 
