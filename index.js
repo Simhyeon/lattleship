@@ -1,31 +1,56 @@
-$pause(true)
+$pause(true) // Rad macro operation
 
-let connection_id = ""
-let resp = ""
-const block_states = ["blank", "occupied", "attacked", "cleared"]
+let connectionId  = ""
+let onStart       = false
+let onRequest     = false
+let lastTime      = null
+const BlockStates = ["blank", "occupied", "attacked", "cleared"]
 
 function onLoad() {
 	const startBtn = document.getElementById("start-button")
-	startBtn.addEventListener('click', start_game)
+	startBtn.addEventListener('click', startGame)
 }
 
-// Returned value is --
+// Returned value of /pick api --
 //local ActionResult = {
-	//game_state = GameState,
-	//new_player_blocks = {},
-	//new_computer_blocks = {},
+	//winner = "player" | "computer",
+	//player = {
+	//		state = STRING
+	//		row   = NUM
+	//		col   = NUM
+	//},
+	//computer = <Same with new player>,
 //}
 
-function start_game() {
+function isBusy() {
+	return onRequest || onStart
+}
+
+// TODO
+// Not only return boolean but make it to show a pop up menu
+function checkDisconnected(current_time) {
+	if ( (current_time - lastTime) / 1000  >= 60 ) {
+		return true
+	} else {
+		return false
+	}
+}
+
+function startGame() {
+	if (isBusy()) return;
 	console.log("Start game")
+	// Clear everything before assigning field
+	clearField()
 	const myField = document.getElementById("player-field")
 	const computerField = document.getElementById("computer-field")
+	onStart = true
+	lastTime = Date.now();
 	fetch('/start')
 		.then((response) => {
 			return response.json();
 		})
 		.then((json) => {
-			connection_id = json.id
+			connectionId = json.id
 			createField(
 				myField,
 				json.player
@@ -37,7 +62,23 @@ function start_game() {
 
 			// Add btn functionality
 			addBtnEventListener()
+
+			// End start flow
+			onStart = false
 		});
+}
+
+function clearField() {
+	const myField = document.getElementById("player-field")
+	const computerField = document.getElementById("computer-field")
+
+	// Remove all child elements if there are
+	while (myField.firstChild) {
+		myField.firstChild.remove()
+	}
+	while (computerField.firstChild) {
+		computerField.firstChild.remove()
+	}
 }
 
 function createField(elem, blocks) {
@@ -56,20 +97,25 @@ function createField(elem, blocks) {
 
 function addBtnEventListener() {
 	document.querySelectorAll('#computer-field .block').forEach(elem => {
-		elem.addEventListener('click', attack_block)
+		elem.addEventListener('click', attackBlock)
 	})
 }
 
-function attack_block(event) {
+function attackBlock(event) {
+	if (connectionId == "") return
+	if (isBusy()) return;
 	const btn = event.target
 	if (btn.classList.contains('blank')) {
+		// Don't request if previous request is on load
+		onRequest = true;
+
 		fetch("/pick", {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
 			},
 			body: new URLSearchParams({
-				'id': connection_id,
+				'id': connectionId,
 				'row' : btn.dataset.row,
 				'col' : btn.dataset.col,
 			})
@@ -77,37 +123,35 @@ function attack_block(event) {
 			return response.json();
 		}).then((json) => {
 			console.log(json)
-			if (json.state != "end") { // Either on or end
+			if (json.winner == undefined) { // Either undefined or winner
 				const pBlock   = json.player
-				const cBlock = json.computer
+				const cBlock   = json.computer
 				if (pBlock != undefined ) {
-					//console.log("Changed p block is ")
-					//console.log(pBlock)
 					const block = document.querySelector(`#player-field .b-${pBlock.row}${pBlock.col}`)
-					block.classList.remove(...block_states)
+					block.classList.remove(...BlockStates)
 					block.classList.add(pBlock.state)
 				}
 				if (cBlock != undefined ) {
-					//console.log("Changed c block is ")
-					//console.log(cBlock)
 					const block = document.querySelector(`#computer-field .b-${cBlock.row}${cBlock.col}`)
-					block.classList.remove(...block_states)
+					block.classList.remove(...BlockStates)
 					block.classList.add(cBlock.state)
 				}
+			} else {
+				// Game end
+				connectionId = "" // Reset connection id
+				gameEnd(json.winner)
 			}
 		});
+
+		// End reqeust flow
+		onRequest = false
 	}
 }
 
-// TODO
-// Demo representation of final result
-//<div id="target">
-	//<div class="row">
-		//<div class="block"></div>
-		//<div class="block"></div>
-		//<div class="block"></div>
-		//<div class="block"></div>
-	//</div>
-//</div>
+// winner is string
+function gameEnd(winner) {
+	// TODO
+	// Show pop up
+}
 
-$pause(false)
+$pause(false) // Rad macro operation
