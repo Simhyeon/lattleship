@@ -1,4 +1,4 @@
-local function remove_from_table(source,val)
+local function remove_from_array(source,val)
 		local index = nil
 		for i, v in ipairs(source) do
 			if (v == val) then
@@ -119,7 +119,7 @@ local function get_raded_index()
 end
 
 local utils = {
-	remove_from_table = remove_from_table,
+	remove_from_array = remove_from_array,
 	get_length = get_length,
 	log_err = log_err,
 	log = log,
