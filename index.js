@@ -1,4 +1,6 @@
-$pause(true) // Rad macro operation
+const DOMAIN = "$env(DOMAIN)"
+
+$pause(true) 
 
 let connectionId  = ""
 let onStart       = false
@@ -6,12 +8,16 @@ let onRequest     = false
 let discInterval  = null // Disconnect Interval
 const BlockStates = ["blank", "occupied", "attacked", "cleared"]
 
+
 function resetEnv() {
 	// Reset connection id
 	connectionId = "" 
 	onStart      = false
 	onRequest    = false
-	clearInterval(discInterval)
+
+	if (discInterval != undefined || discInterval != null) {
+		clearInterval(discInterval)
+	}
 }
 
 // tv is bool
@@ -43,7 +49,7 @@ function isBusy() {
 function refreshConnection() {
 	discInterval = setInterval(() => {
 		console.log("Refreshing connection")
-		fetch("/refresh", {
+		fetch(`${DOMAIN}/refresh`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
@@ -66,7 +72,7 @@ function startGame() {
 	const myField = document.getElementById("player-field");
 	const computerField = document.getElementById("computer-field");
 	onStart = true;
-	fetch('/start')
+	fetch(`${DOMAIN}/start`)
 		.then((response) => {
 			return response.json();
 		})
@@ -149,7 +155,7 @@ function attackBlock(event) {
 		onRequest = true;
 
 		// Send request
-		fetch("/pick", {
+		fetch(`${DOMAIN}/pick`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
