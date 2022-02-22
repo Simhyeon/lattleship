@@ -11,8 +11,7 @@ local timeout_interval = 1000 * 60
 
 -- Sadly it has to be a global variable
 local connection = {}
---local boat_sizes = { 3,3,4,4,5,6 }
-local boat_sizes = { 3 }
+local boat_sizes = { 3,3,4,4,5,6 }
 
 -- Send static file
 local function game(_, res)

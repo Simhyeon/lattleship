@@ -390,7 +390,7 @@ end
 local GameState = {
 	row_count = 10,
 	col_count = 10,
-	boat_sizes = { 3,3,4,5,6,7 },
+	boat_sizes = {},
 	id= "",
 	player = FieldState,
 	computer = FieldState,
