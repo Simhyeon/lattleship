@@ -168,7 +168,7 @@ function FieldState:attack(row,col)
 		-- Destroy ship which,
 		-- removes boat from available stack
 		if boat.hp <= 0 then
-			utils.remove_from_table(self.boats,boat)
+			utils.remove_from_array(self.boats,boat)
 			print("Boat destroyed. Remaining : " .. utils.get_length(self.boats))
 		end
 
@@ -465,20 +465,25 @@ function GameState:try_attack_player()
 end
 
 local ActionResult = {
-	game_state = GameState,
+	winner = nil,
 	new_player_block = {},
 	new_computer_block = {},
 }
 
+-- TODO
+-- Check victory before attack player
 function GameState:player_action(row,col)
 	-- Try attacking for both "players"
 	local player_flow,computer_changed     = self:try_attack_computer(row,col)
 	local computer_flow,player_changed = self:try_attack_player()
 	local final_flow = GameFlow.On
+	local winner = nil
 
 	-- Check if flow should change
-	if player_flow == GameFlow.End or computer_flow == GameFlow.End then
-		final_flow = GameFlow.End
+	if player_flow == GameFlow.End then
+		winner = "player"
+	elseif computer_flow == GameFlow.End then
+		winner = "computer"
 	end
 
 	-- Only send new blocks if there was change
@@ -500,7 +505,7 @@ function GameState:player_action(row,col)
 
 	-- Create result
 	local result = {
-		state = final_flow,
+		winner = winner,
 		player = p_block,
 		computer = c_block
 	}
