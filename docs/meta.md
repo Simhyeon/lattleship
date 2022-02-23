@@ -1,5 +1,9 @@
 ### TODO
 
+* [x] Docs
+
+### DONE
+
 * [x] Simple body parser
 * [x] Find a way to create uuid : copy pastad
 
@@ -33,30 +37,3 @@
 
 * [x] Understand the concept of oop mimicking
 	* [x] self.__index = self
-
-### Note
-
-* [x] Timeout for connection table so that it doesn't get fully stacked with
-unused connection
-	- [x] Server side
-	- [x] Client side - refresh
-* [x] Currently computers attack can take some time coniderably lot, Make it
-smarter and cache the picked result
-
-### State
-
-- Currently inner implementation is complete in concept, not **tested**
-- Connection between client and server is not complete yet
-
-### Plan
-
-* [x] Re-implement generate_map
-* [x] Test generate_map
-* [x] Decide how attack method should work
-* [x] Make index.html file
-	* [x] Mobile flexiblity
-* [x] Timeout
-	* [x] Server
-	* [x] Client - refresh
-* [x] New random algorithm
-- Kinda? it is totally random ( player can hardly lose... )

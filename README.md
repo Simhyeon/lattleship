@@ -1,10 +1,15 @@
-### Battleship made with lua
+### Lattleship : battleship made with lua
 
 This is a learning project for lua.
 
-[Repl](https://replit.com/@Simhyeon/lattleship)
-[URL](https://lattleship.simhyeon.repl.co)
+[Repl source](https://replit.com/@Simhyeon/lattleship)
 
-### Demo
+[Hosted url](https://lattleship.simhyeon.repl.co)
 
-![Demo](./docs/lattleship_demo.png)
+### Basic workflow
+
+![Basic workflow](./docs/lattleship_workflow.png)
+
+### Demo Image
+
+![Demo Image](./docs/lattleship_demo.png)
