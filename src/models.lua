@@ -1,7 +1,7 @@
 local utils = require("./utils")
 local random = math.random
 
--- Enum BlockState
+--- Enum BlockState
 local BlockState = {
 	blank    = "blank",
 	occupied = "occupied",
@@ -9,11 +9,16 @@ local BlockState = {
 	cleared  = "cleared"
 }
 
+--- Class coordinate
 local Coord = {
 	row = 1,
 	col = 1,
 }
 
+--- Coordinate constructor
+-- @param row Row value
+-- @param col Column value
+-- @return New coord instance
 function Coord:new(row,col)
 	local o = utils.shallow_copy(self)
 	o.row = row
@@ -21,16 +26,23 @@ function Coord:new(row,col)
 	return o
 end
 
+--- Debug coordinate
 function Coord:debug()
-	utils.log(string.format("From : (%s %s)",self.row , self.col))
+	utils.log(string.format("Coord : (%s %s)",self.row , self.col))
 end
 
+--- Boat instance
 local Boat = {
 	start_coord = Coord:new(1,1),
 	end_coord = Coord:new(1,1),
 	hp = 0,
 }
 
+--- Boat constructor
+-- @param start_coord Starting coordinate
+-- @param end_coord Ending cooridinate
+-- @param hp Boat's health point
+-- @return New boat instance
 function Boat:new(start_coord,end_coord,hp)
 	local obj = {}
 	setmetatable(obj,self)
@@ -41,12 +53,15 @@ function Boat:new(start_coord,end_coord,hp)
 	return obj
 end
 
+--- Block class
 local Block = {
 	state = BlockState.blank,
 	owner = Boat,
 	display = "",
 }
 
+--- Block constructor
+-- @return New block instance
 function Block:new()
 	local obj = {}
 	setmetatable(obj,self)
@@ -57,16 +72,19 @@ function Block:new()
 	return obj
 end
 
--- Direction enum
+--- Direction enum
 local Direction = {
 	horizontal = 1,
 	vertical = 2,
 }
 
+--- Linestate instance
 local LineState = {
 	available_space = 0,
 }
 
+--- Linestate constructor
+-- @return Newly created linestate instance
 function LineState:new(space)
 	local o = {}
 	setmetatable(o,self)
@@ -75,6 +93,7 @@ function LineState:new(space)
 	return o
 end
 
+--- FieldState class
 local FieldState = {
 	row_count = 10,
 	col_count = 10,
@@ -86,6 +105,11 @@ local FieldState = {
 
 ---- <FieldStateMethod>
 
+--- FieldState constructor
+-- This creates empty blocks with blank blockstate
+-- @param row_count Row count of field
+-- @param col_count Column count of field
+-- @return FiedState instance
 function FieldState:new(row_count,col_count)
 	local o = {}
 	setmetatable(o,self)
@@ -109,6 +133,8 @@ function FieldState:new(row_count,col_count)
 	return o
 end
 
+--- Fieldstate debug function
+-- This prints blocks into a human readable form
 function FieldState:debug()
 	local string = ""
 	for row = 1,self.col_count do
@@ -127,6 +153,9 @@ function FieldState:debug()
 	utils.log(string)
 end
 
+--- Index a block wtih given coordinate
+-- @param coord Coorindate instance to index
+-- @return indexed block instance
 function FieldState:index_coord(coord)
 	local row = coord.row
 	local col = coord.col
@@ -139,6 +168,10 @@ function FieldState:index_coord(coord)
 	return self.blocks[col][row]
 end
 
+--- Index a block wtih given row, column 
+-- @param row Block row to index
+-- @param row Block column to index
+-- @return indexed block instance
 function FieldState:index(row,col)
 	if row < 1 or row > self.row_count or col < 1 or col > self.col_count then
 		utils.log_err("Row or column is out of range")
@@ -148,8 +181,12 @@ function FieldState:index(row,col)
 	return self.blocks[col][row]
 end
 
--- Return coord if anything changed
--- Retrun nil if indexing is out of range or nothing has changed
+--- Attack field with given row, column
+-- This method tries to attak given block and return affected block
+-- nil will be returned if index fails or no block was affected.
+-- @param row Block row to attack
+-- @param row Block column to attack
+-- @retrun Affected block instance
 function FieldState:attack(row,col)
 	if row < 1 or row > self.row_count or col < 1 or col > self.col_count then
 		utils.log_err("Row or column is out of range")
@@ -184,7 +221,10 @@ function FieldState:attack(row,col)
 	return nil
 end
 
-
+--- Set block as occupied
+-- @param row Block row to occupy
+-- @param row Block column to occupy
+-- @return if occupy succeeded ( boolean )
 function FieldState:occupy(row,col)
 	if row < 1 or row > self.row_count or col < 1 or col > self.col_count then
 		utils.log_err("Row or column is out of range")
@@ -196,6 +236,9 @@ function FieldState:occupy(row,col)
 	return true
 end
 
+--- Get lines by direction
+-- @param dir Direction to decide which line to get
+-- @return Lines
 function FieldState:get_lines(dir)
 	if dir == Direction.vertical then
 		return self.cols
@@ -204,6 +247,9 @@ function FieldState:get_lines(dir)
 	end
 end
 
+--- Get line length by direction
+-- @param dir Direction to decide which line length to get
+-- @return Lines count
 function FieldState:get_line_length(dir)
 	if dir == Direction.vertical then
 		return self.row_count
@@ -212,7 +258,13 @@ function FieldState:get_line_length(dir)
 	end
 end
 
--- Return value of nil,nil means space is not sufficient
+--- Get available boat position's start and end index
+-- This will get randomized boat position within given line
+-- @param dir Direction
+-- @param boat_size Boat size
+-- @param line_index Index of line to calculate
+-- @return Boat's start index
+-- @return Boat's end index
 function FieldState:get_line_content_start_end(dir,boat_size,line_index)
 	-- Initial value
 	local content_index_start,content_index_end = nil,nil
@@ -274,6 +326,15 @@ function FieldState:get_line_content_start_end(dir,boat_size,line_index)
 	return content_index_start, content_index_end
 end
 
+--- Get coordinate from line content's start and end index
+-- Because content's index is line specific index it needs to be converted to
+-- global coordintate instance
+-- @param current_dir Direction
+-- @param line_index Line index
+-- @param content_index_start Start index
+-- @param content_index_end End index
+-- @return Start coordinate
+-- @return End coordinate
 function FieldState:get_coord_start_end(current_dir,line_index,content_index_start,content_index_end)
 	local min_coord = Coord
 	local max_coord = Coord
@@ -289,6 +350,11 @@ function FieldState:get_coord_start_end(current_dir,line_index,content_index_sta
 	return min_coord,max_coord
 end
 
+--- Construct boat and set into data list
+-- @param current_dir Direction
+-- @param boat_size Size of boat
+-- @param line_index Index of a line for boat to be set
+-- @param If the boat has ben constructed or not (boolean)
 function FieldState:construct_boat(current_dir,boat_size,line_index)
 	-- Name is simply a boat size to string
 	local boat_name   = tostring(boat_size)
@@ -343,6 +409,9 @@ function FieldState:construct_boat(current_dir,boat_size,line_index)
 	return true
 end
 
+--- Place a boat for given boat size
+-- @param boat_size Size of boat
+-- @return If place succeeded or not (boolean)
 function FieldState:place_boat(boat_size)
 	local placed = false
 	while not placed do
@@ -379,6 +448,8 @@ function FieldState:place_boat(boat_size)
 	end     -- End while loop
 end         -- End function
 
+--- Generate field map
+-- @param boat_sizes Array of boat sizes
 function FieldState:generate_map(boat_sizes)
 	for _,size in ipairs(boat_sizes) do
 		self:place_boat(size)
@@ -387,6 +458,7 @@ end
 
 ---- </FieldStateMethod>
 
+--- Total states of game
 local GameState = {
 	row_count = 10,
 	col_count = 10,
@@ -397,11 +469,17 @@ local GameState = {
 	pick_cache = {},
 }
 
+--- GameFlow enum
 local GameFlow = {
 	On = "on",
 	End = "end",
 }
 
+--- GameState constructor
+-- @param row_count Count of field rows
+-- @param col_count Count of field columns
+-- @param boat_size Base array for boat sizes
+-- @return Newly creaed gamestate instance
 function GameState:new(row_count,col_count,boat_sizes)
 	if not row_count or not col_count or not boat_sizes then
 		utils.log_err("Insufficient arguments for gamestate constructor")
@@ -422,6 +500,9 @@ function GameState:new(row_count,col_count,boat_sizes)
 	return o
 end
 
+--- Check if target has won or not
+-- @param target The actor
+-- @return If actor won or not (boolean)
 function GameState:check_victory(target)
 	if target == "player" then
 		if utils.get_length(self.computer.boats) == 0 then
@@ -436,6 +517,11 @@ function GameState:check_victory(target)
 	return false
 end
 
+--- Try attack computer by player
+-- @param row Block's row to attack
+-- @param col Block's col to attack
+-- @return GameFlow
+-- @return Changed block instance
 function GameState:try_attack_computer(row,col)
 	local changed = self.computer:attack(row,col)
 
@@ -446,10 +532,14 @@ function GameState:try_attack_computer(row,col)
 	end
 end
 
+--- Try attack player by computer
+-- @param row Block's row to attack
+-- @param col Block's col to attack
+-- @return GameFlow
+-- @return Changed block instance
 function GameState:try_attack_player()
-	-- TODO
-	-- This is just too naive solution
-	-- Make computer more smarter
+	-- NOTE
+	-- This can possibly improved though...
 	local index = math.random(1,utils.get_length(self.pick_cache))
 	local pick = self.pick_cache[index]
 	local changed = self.player:attack(
@@ -467,8 +557,10 @@ function GameState:try_attack_player()
 	end
 end
 
--- TODO
--- Check victory before attack player
+--- Player action called by server route
+-- @param row Target block's row
+-- @param col Target block's column
+-- @return Result of player action
 function GameState:player_action(row,col)
 	-- Try attacking for both "players"
 	local player_flow,computer_changed = self:try_attack_computer(row,col)

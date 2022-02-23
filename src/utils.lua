@@ -1,11 +1,18 @@
+--- Print text to stderr
+-- @param text Content to print out
 local function log_err(text)
 	io.stderr:write(string.format("ERR : %s\n",text))
 end
 
+--- Print text to stdout
+-- @param text Content to print out
 local function log(text)
 	io.stdout:write(string.format("%s\n",text))
 end
 
+--- Remove value from array-type table
+-- @param source Table to remove from
+-- @param val Value to remove
 local function remove_from_array(source,val)
 	local index = nil
 	for i, v in ipairs(source) do
@@ -20,16 +27,22 @@ local function remove_from_array(source,val)
 	end
 end
 
--- Get table length
+--- Get table length from table
+-- @param tbl Table to get length
+-- @return Length of the table
 local function get_length(tbl)
 	local getN = 0
-	for n in pairs(tbl) do
+	for _ in pairs(tbl) do
 		getN = getN + 1
 	end
 	return getN
 end
 
--- Shuffle
+--- Shuffle given array-typed table
+-- Keep in mind that lua doesn't send copy of table thus
+-- shuffle changes source table
+-- @param tbl Table to shuffle
+-- @return Shuffled table reference
 local function shuffle(tbl)
 	for i = #tbl, 2, -1 do
 		local j = math.random(i)
@@ -38,8 +51,9 @@ local function shuffle(tbl)
 	return tbl
 end
 
--- Shallow copy table
--- doesn't copy nested tables properly
+--- Shallow copy table
+-- This doesn't copy nested tables properly
+-- @param original Original table to copy from
 local function shallow_copy(original)
 	local copy = {}
 	for key, value in pairs(original) do
@@ -48,7 +62,11 @@ local function shallow_copy(original)
 	return copy
 end
 
--- Two dimensional array
+--- Create two dimensional array(table) with given value
+-- @param row Count of rows
+-- @param col Count of columns
+-- @param value Value to assign to each coordinate
+-- @return Created table
 local function empty_2d_array(row,col,value)
 	local grid = {}
 	for i = 1,col do
@@ -65,6 +83,11 @@ local function empty_2d_array(row,col,value)
 	return grid
 end
 
+--- Convert blocks table into json.stringify-able table
+-- @param source Blocks table to convert
+-- @param row Count of rows
+-- @param col Count of columns
+-- @return Newly created simple block table
 local function to_simple_block_array(source,row,col)
 	local grid = {}
 	for i = 1,col do
@@ -76,6 +99,11 @@ local function to_simple_block_array(source,row,col)
 	return grid
 end
 
+--- Create 2d array(table) for computer's decision making
+-- This is utilized for randomly picking available block space
+-- @param row Count of rows
+-- @param col Count of columns
+-- @return Created 2d array
 local function to_computer_cache(row,col)
 	local grid = {}
 	for i = 1,col do
@@ -90,7 +118,10 @@ local function to_computer_cache(row,col)
 	return grid
 end
 
--- Split command with given separator
+--- Split text with given separator
+-- @param inputstr Text to split
+-- @param sep Separator string
+-- @return Splited array table
 local function split_string(inputstr, sep)
 	if sep == nil or sep == "" then
 		sep = "%s"
@@ -103,8 +134,9 @@ local function split_string(inputstr, sep)
 	return t
 end
 
--- Parse body and return
--- Though this is for very limited usage
+--- Parse request body and get parsed table
+-- @param inputstr Source to parse
+-- @return Parsed table(hashmap)
 local function parse_url_body(inputstr)
 	local parsed_table = split_string(inputstr,"&")
 	local body_table = {}
@@ -115,6 +147,8 @@ local function parse_url_body(inputstr)
 	return body_table
 end
 
+--- Create mostly distinctive uuid string
+-- @return Generated uuid string
 local function uuid()
 	local random = math.random
     local template ='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
@@ -124,6 +158,8 @@ local function uuid()
     end)
 end
 
+--- Get index.file from local directory
+-- @return Read file's content as string
 local function get_index_file()
 	local file = io.open("./bundle.html", "r")
 	local data = file:read("*all")

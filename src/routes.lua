@@ -1,8 +1,6 @@
 local utils = require("./utils")
 local models= require("./models")
 
-local index_file = "index.html"
-local fs = require('fs')
 local json = require('json').use_lpeg()
 local timer = require('timer')
 
@@ -13,7 +11,10 @@ local timeout_interval = 1000 * 60
 local connection = {}
 local boat_sizes = { 3,3,4,4,5,6 }
 
+--- Default root route for game
 -- Send static file
+-- @pram _
+-- @pram req Request
 local function game(_, res)
 	utils.log("ROUTE--game")
 	-- Set options
@@ -24,7 +25,10 @@ local function game(_, res)
 	res.body = file
 end
 
--- Create id and send back to user
+--- "Start" route
+-- Create id with game, add to connection and send back information to user
+-- @pram _
+-- @pram req Request
 local function start(_, res)
 	utils.log("ROUTE--start")
 	-- Set options
@@ -62,6 +66,10 @@ local function start(_, res)
 	res.body = json.stringify(body)
 end
 
+--- "Refresh" route
+-- Refresh connections last update time
+-- @pram _
+-- @pram req Request
 local function refresh(req,res)
 	utils.log("ROUTE--refresh")
 	res.headers["Content-Type"] = "text/json"
@@ -88,6 +96,10 @@ local function refresh(req,res)
 	res.body = "{}"
 end
 
+--- "Pick" route
+-- Get player's pick information, execute player_action method and send result
+-- @pram res Response
+-- @pram req Request
 local function pick(req,res)
 	utils.log("ROUTE--pick")
 	res.headers["Content-Type"] = "text/json"
